@@ -10,6 +10,12 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="layout">
+<aside class="rank" aria-labelledby="rankTitle">
+  <h2 id="rankTitle">RANK</h2>
+  <p class="sub">Top 10 deste navegador</p>
+  <ol id="rankList"></ol>
+</aside>
 <main class="app">
   <h1>COMILÃO</h1>
   <div class="stats">
@@ -25,6 +31,12 @@
       <div class="card">
         <h2 id="ovTitle"></h2>
         <p id="ovText"></p>
+        <form class="nick" id="nickForm" hidden autocomplete="off">
+          <label for="nick">Digite seu nickname para entrar no rank</label>
+          <input id="nick" name="nick" maxlength="12" required spellcheck="false" placeholder="Seu nickname">
+          <span class="err" id="nickErr" role="alert"></span>
+          <button class="btn" type="submit">Salvar no rank</button>
+        </form>
         <button class="btn" id="ovBtn" type="button"></button>
         <p class="hint" id="ovHint"></p>
       </div>
@@ -45,6 +57,7 @@
     <ul id="legend"></ul>
   </section>
 </main>
+</div>
 
 <script>
 (() => {
@@ -449,13 +462,15 @@ function afterClear(){
 function gameOver(){
   S.mode = 'over';
   showOverlay('FIM DE JOGO', 'Os vilões venceram desta vez. Você chegou à <b>' + LEVELS[S.levelIdx].name.toLowerCase() + '</b> com <b>' + S.score + '</b> pontos.', 'Tentar de novo', startGame, 'Enter ou Espaço também funcionam');
+  askNick();
 }
 function victory(){
   S.mode = 'won'; S.popups = [];
   showOverlay('VOCÊ ZEROU O JOGO! 🏆', 'Você limpou as 3 fases e derrotou os vilões.<br>Pontuação final: <b>' + S.score + '</b><br>Recorde: <b>' + S.hi + '</b>', 'Jogar de novo', startGame, 'Enter ou Espaço também funcionam');
+  askNick();
 }
 function startGame(){
-  ensureAudio();
+  ensureAudio(); renderRank();
   S.score = 0; S.lives = 3; S.nextExtra = 10000;
   loadLevel(0); hideOverlay(); beginReady(2.6);
 }
@@ -672,6 +687,7 @@ function hud(){
 }
 function showOverlay(title, html, btn, action, hint){
   ov.title.textContent = title; ov.text.innerHTML = html; ov.btn.textContent = btn;
+  nickForm.hidden = true; nickPending = false; ov.btn.classList.remove('ghost');
   ov.hint.textContent = hint || ''; ovAction = action; ov.root.classList.add('show');
 }
 function hideOverlay(){ ov.root.classList.remove('show'); ovAction = null; }
@@ -705,6 +721,64 @@ FRUITS.forEach(f => {
   legend.appendChild(li);
 });
 
+/* ---------- Rank ---------- */
+const RANK_KEY = 'comilao_rank', NICK_KEY = 'comilao_nick', RANK_MAX = 10;
+const rankList = $('rankList'), nickForm = $('nickForm'), nickInput = $('nick'), nickErr = $('nickErr');
+let rank = [], lastNick = '', nickPending = false;
+try {
+  const saved = JSON.parse(localStorage.getItem(RANK_KEY));
+  if (Array.isArray(saved)) rank = saved.filter(x => x && typeof x.n === 'string' && Number.isFinite(x.s)).slice(0, RANK_MAX);
+  lastNick = localStorage.getItem(NICK_KEY) || '';
+} catch(e) {}
+
+function qualifies(score){ return score > 0 && (rank.length < RANK_MAX || score > rank[rank.length - 1].s); }
+function addRank(name, score, level, won){
+  const entry = { n:name, s:score, l:level, w:won, t:Date.now() };
+  rank.push(entry);
+  rank.sort((a, b) => b.s - a.s || a.t - b.t);
+  rank = rank.slice(0, RANK_MAX);
+  try { localStorage.setItem(RANK_KEY, JSON.stringify(rank)); } catch(e) {}
+  renderRank(entry);
+  return entry;
+}
+function renderRank(mark){
+  rankList.textContent = '';
+  for (let i = 0; i < RANK_MAX; i++){
+    const r = rank[i], li = document.createElement('li');
+    li.className = r ? (r === mark ? 'me' : '') : 'slot';
+    const pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = (i + 1) + 'º';
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = r ? r.n : 'Vaga livre';
+    const pt = document.createElement('span'); pt.className = 'pt'; pt.textContent = r ? r.s : '—';
+    li.append(pos, nm, pt);
+    if (r){
+      const sm = document.createElement('small'); sm.textContent = r.w ? 'Zerou o jogo 🏆' : 'Chegou à fase ' + r.l;
+      li.append(sm);
+    }
+    rankList.appendChild(li);
+  }
+}
+function askNick(){
+  if (!qualifies(S.score)) return;
+  nickForm.hidden = false; nickPending = true; nickErr.textContent = '';
+  nickInput.value = lastNick;
+  ov.btn.textContent = 'Pular e jogar de novo'; ov.btn.classList.add('ghost'); ov.hint.textContent = '';
+  nickInput.focus(); nickInput.select();
+}
+nickForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const name = nickInput.value.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 12);
+  if (!name){ nickErr.textContent = 'Digite um nickname para salvar.'; nickInput.focus(); return; }
+  lastNick = name;
+  try { localStorage.setItem(NICK_KEY, name); } catch(err) {}
+  const entry = addRank(name, S.score, S.levelIdx + 1, S.mode === 'won');
+  ov.text.textContent = name + ', você ficou em ' + (rank.indexOf(entry) + 1) + 'º lugar no rank com ' + S.score + ' pontos.';
+  nickForm.hidden = true; nickPending = false;
+  ov.btn.textContent = 'Jogar de novo'; ov.btn.classList.remove('ghost');
+  ov.hint.textContent = 'Enter ou Espaço também funcionam';
+  ovAction = startGame; ov.btn.focus();
+});
+renderRank();
+
 /* ---------- Controles ---------- */
 const KEYMAP = { ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0], w:[0,-1], s:[0,1], a:[-1,0], d:[1,0] };
 function setDir(x, y){
@@ -713,6 +787,7 @@ function setDir(x, y){
   if (S.mode === 'playing' && (p.dx || p.dy) && p.dx === -x && p.dy === -y) reverse(p);
 }
 window.addEventListener('keydown', e => {
+  if (e.target === nickInput) return; /* digitar o nickname não aciona atalhos do jogo */
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (KEYMAP[k]){
     if (['ready','playing','dying','paused'].includes(S.mode)) e.preventDefault();
@@ -721,6 +796,7 @@ window.addEventListener('keydown', e => {
     if (S.mode === 'playing') pauseGame(); else if (S.mode === 'paused') resumeGame();
   } else if (k === 'Enter' || k === ' '){
     if (e.target && e.target.tagName === 'BUTTON' && e.target !== ov.btn) return;
+    if (nickPending && e.target !== ov.btn) { e.preventDefault(); nickInput.focus(); return; }
     if (ov.root.classList.contains('show') && ovAction) { e.preventDefault(); ovAction(); }
     else if (k === ' ' && S.mode === 'playing') { e.preventDefault(); pauseGame(); }
   } else if (k === 'm') toggleMute();
