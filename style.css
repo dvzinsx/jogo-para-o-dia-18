@@ -78,6 +78,10 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;border:2px solid 
 .rank li.me{background:var(--line);border-color:var(--accent)}
 .rank li.slot{opacity:.45;border-style:dashed}
 .rank li.slot .nm{font-weight:400}
+.reset{margin-top:12px;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.reset:hover{color:var(--text);border-color:var(--muted)}
+.reset.armed{background:#c92a2a;border-color:#c92a2a;color:#fff}
+.reset:focus-visible{outline:3px solid #7aa2ff;outline-offset:2px}
 .rank li.empty{display:block;color:var(--muted);line-height:1.45}
 @media (max-width:860px){
   .layout{grid-template-columns:minmax(0,560px)}
