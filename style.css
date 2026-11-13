@@ -82,6 +82,20 @@ canvas{display:block;width:100%;height:auto;border-radius:14px;border:2px solid 
 .reset:hover{color:var(--text);border-color:var(--muted)}
 .reset.armed{background:#c92a2a;border-color:#c92a2a;color:#fff}
 .reset:focus-visible{outline:3px solid #7aa2ff;outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.top-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.exit,.fs{font:inherit;font-size:14px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap}
+.exit:hover:not(:disabled),.fs:hover{border-color:var(--muted)}
+.fs:focus-visible{outline:3px solid #7aa2ff;outline-offset:2px}
+.exit:disabled{opacity:.4;cursor:default}
+.exit.armed{background:#c92a2a;border-color:#c92a2a;color:#fff}
+
+/* Modo tela cheia: o labirinto cresce até caber na altura da tela */
+.is-fs .layout{grid-template-columns:minmax(220px,300px) minmax(0,900px)}
+.is-fs .legend{display:none}
+.is-fs .stage{width:fit-content;max-width:100%;align-self:center}
+.is-fs canvas{width:auto;height:min(calc(100vh - 270px),calc((100vw - 360px) * 20 / 19));height:min(calc(100dvh - 270px),calc((100vw - 360px) * 20 / 19))}
+.exit:focus-visible{outline:3px solid #7aa2ff;outline-offset:2px}
 .rank li.empty{display:block;color:var(--muted);line-height:1.45}
 @media (max-width:860px){
   .layout{grid-template-columns:minmax(0,560px)}

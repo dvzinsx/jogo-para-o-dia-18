@@ -497,7 +497,7 @@ function update(dt){
   else if (S.mode === 'playing') updatePlaying(dt);
   else if (S.mode === 'dying') { S.stateTimer -= dt; if (S.stateTimer <= 0) afterDeath(); }
   else if (S.mode === 'clear') { S.stateTimer -= dt; if (S.stateTimer <= 0) afterClear(); }
-  renderFx();
+  renderFx(); syncExit();
 }
 
 /* ---------- Desenho ---------- */
@@ -761,6 +761,7 @@ window.addEventListener('keydown', e => {
     if (ov.root.classList.contains('show') && ovAction) { e.preventDefault(); ovAction(); }
     else if (k === ' ' && S.mode === 'playing') { e.preventDefault(); pauseGame(); }
   } else if (k === 'm') toggleMute();
+  else if (k === 'f') toggleFs();
 });
 document.querySelectorAll('.pad button').forEach(b => {
   const map = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
@@ -781,11 +782,58 @@ const muteBtn = $('mute');
 function toggleMute(){ muted = !muted; muteBtn.textContent = muted ? '🔇 Mudo' : '🔊 Som'; }
 muteBtn.addEventListener('click', () => { muteBtn.blur(); toggleMute(); });
 
+/* ---------- Tela cheia ---------- */
+const fsBtn = $('fsBtn'), docEl = document.documentElement;
+const fsActive = () => document.fullscreenElement || document.webkitFullscreenElement;
+function fsSync(){
+  const on = !!fsActive();
+  docEl.classList.toggle('is-fs', on);
+  fsBtn.textContent = on ? '⤡ Sair da tela cheia' : '⤢ Tela cheia';
+  fsBtn.setAttribute('aria-pressed', String(on));
+}
+function toggleFs(){
+  try {
+    const r = fsActive()
+      ? (document.exitFullscreen || document.webkitExitFullscreen).call(document)
+      : (docEl.requestFullscreen || docEl.webkitRequestFullscreen).call(docEl);
+    if (r && r.catch) r.catch(() => {});
+  } catch(e) {}
+}
+if (!(docEl.requestFullscreen || docEl.webkitRequestFullscreen)) fsBtn.hidden = true;
+fsBtn.addEventListener('click', () => { fsBtn.blur(); toggleFs(); });
+document.addEventListener('fullscreenchange', fsSync);
+document.addEventListener('webkitfullscreenchange', fsSync);
+
+/* ---------- Menu e botão Sair ---------- */
+function showMenu(){
+  showOverlay('COMILÃO',
+    'Coma todas as bolinhas de cada labirinto e fuja dos vilões. As super bolinhas deixam os vilões azuis e comestíveis, e as frutas dão poderes. Zere as 3 fases para vencer!',
+    'Jogar', startGame, 'Recorde atual: ' + S.hi);
+}
+const exitBtn = $('exitBtn');
+let exitTimer = 0, exitDisabled = null;
+function exitLabel(){ exitBtn.textContent = '✕ Sair'; exitBtn.classList.remove('armed'); }
+function syncExit(){
+  const off = S.mode === 'menu';
+  if (off !== exitDisabled) { exitDisabled = off; exitBtn.disabled = off; if (off) { clearTimeout(exitTimer); exitLabel(); } }
+}
+exitBtn.addEventListener('click', () => {
+  const inGame = ['ready', 'playing', 'dying', 'clear', 'paused'].includes(S.mode) || nickPending;
+  if (inGame && !exitBtn.classList.contains('armed')){
+    if (S.mode === 'playing') pauseGame();
+    exitBtn.textContent = 'Sair da partida?';
+    exitBtn.classList.add('armed');
+    clearTimeout(exitTimer); exitTimer = setTimeout(exitLabel, 4000);
+    return;
+  }
+  clearTimeout(exitTimer); exitLabel(); exitBtn.blur();
+  S.mode = 'menu'; S.score = 0; S.lives = 3; S.nextExtra = 10000;
+  loadLevel(0); showMenu();
+});
+
 /* ---------- Início ---------- */
 loadLevel(0);
-showOverlay('COMILÃO',
-  'Coma todas as bolinhas de cada labirinto e fuja dos vilões. As super bolinhas deixam os vilões azuis e comestíveis, e as frutas dão poderes. Zere as 3 fases para vencer!',
-  'Jogar', startGame, 'Recorde atual: ' + S.hi);
+showMenu();
 
 let last = performance.now();
 function frame(now){

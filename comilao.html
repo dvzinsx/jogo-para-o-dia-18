@@ -18,7 +18,13 @@
   <button class="reset" id="rankReset" type="button">Apagar rank e recorde</button>
 </aside>
 <main class="app">
-  <h1>COMILÃO</h1>
+  <header class="top">
+    <h1>COMILÃO</h1>
+    <div class="top-actions">
+      <button class="fs" id="fsBtn" type="button" aria-pressed="false">⤢ Tela cheia</button>
+      <button class="exit" id="exitBtn" type="button">✕ Sair</button>
+    </div>
+  </header>
   <div class="stats">
     <div class="stat"><span>Pontos</span><b id="score">0</b></div>
     <div class="stat"><span>Recorde</span><b id="hi">0</b></div>
@@ -50,7 +56,7 @@
     <button type="button" data-d="right" aria-label="Direita">▶</button>
   </div>
   <div class="bar">
-    <span>Setas ou WASD movem · P pausa · no celular, deslize na tela</span>
+    <span>Setas ou WASD movem · P pausa · F tela cheia · no celular, deslize na tela</span>
     <button class="mute" id="mute" type="button">🔊 Som</button>
   </div>
   <section class="legend">
